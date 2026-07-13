@@ -1,4 +1,4 @@
-export const PINOVA_DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
+export const PINOVA_DEFAULT_MODEL = "gpt-5.4-mini";
 
 export const PINOVA_MODELS = [
   "chatgpt-4o-latest",

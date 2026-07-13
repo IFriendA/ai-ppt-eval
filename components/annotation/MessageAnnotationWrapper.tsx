@@ -123,7 +123,7 @@ export default function MessageAnnotationWrapper({
             {preview ? (
               <div
                 className={[
-                  "pointer-events-none absolute end-0 top-full z-20 mt-1.5 w-80 max-w-[min(20rem,calc(100vw-3rem))] rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-default shadow-md transition-opacity",
+                  "pointer-events-none absolute end-full top-1/2 z-20 me-2 w-80 max-w-[min(20rem,calc(100vw-2rem))] -translate-y-1/2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs leading-5 text-default shadow-md transition-opacity",
                   hovering && !panelOpen ? "opacity-100" : "opacity-0",
                 ].join(" ")}
               >
@@ -153,7 +153,7 @@ export default function MessageAnnotationWrapper({
               onMouseDown={() => setPanelOpen(false)}
               aria-hidden
             />
-            <div className="absolute start-full top-1/2 z-20 ms-2 w-80 max-w-[min(20rem,calc(100vw-3rem))] -translate-y-1/2">
+            <div className="absolute end-full top-1/2 z-20 me-2 w-80 max-w-[min(20rem,calc(100vw-2rem))] -translate-y-1/2">
               <AnnotationPanel
                 annotation={annotation}
                 onSave={handleSave}
