@@ -10,6 +10,7 @@ import { getUserInfo } from "@/api/userApi";
 import ChatHistoryPanel from "@/components/workspace/ChatHistoryPanel";
 import TaskList from "@/components/workspace/TaskList";
 import WorkspaceUserBar from "@/components/workspace/WorkspaceUserBar";
+import { AnnotationProvider } from "@/components/annotation/AnnotationProvider";
 import DokieBackground from "@/components/brand/DokieBackground";
 import DokieLogo from "@/components/brand/DokieLogo";
 import { clearAuth, getStoredUser, setAuth } from "@/lib/auth";
@@ -364,13 +365,16 @@ export default function WorkspacePage() {
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white/70">
           {activeProjectId && currentTask ? (
-            <ChatHistoryPanel
-              key={activeProjectId}
-              messages={historyMessages}
-              loading={historyLoading}
-              error={historyError}
-              projectFormat={activeProjectFormat}
-            />
+            <AnnotationProvider projectId={activeProjectId}>
+              <ChatHistoryPanel
+                key={activeProjectId}
+                projectId={activeProjectId}
+                messages={historyMessages}
+                loading={historyLoading}
+                error={historyError}
+                projectFormat={activeProjectFormat}
+              />
+            </AnnotationProvider>
           ) : (
             <div className="flex flex-1 items-center justify-center p-6">
               <div className="max-w-md text-center text-sm text-mute">

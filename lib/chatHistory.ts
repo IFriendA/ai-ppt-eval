@@ -1,4 +1,4 @@
-import type { HistoryMessage, MessageUserMsg } from "@/api/types";
+import type { HistoryMessage } from "@/api/types";
 import type {
   KeyInfosData,
   NewVerData,
@@ -333,43 +333,88 @@ function insertSystemItems(items: SystemItem[], nextItems: SystemItem[]) {
   });
 }
 
-function appendSystemItems(
-  target: Extract<EvalChatMessage, { type: "system" }>,
-  nextItems: SystemItem[],
-  chatMsgId: number,
-) {
-  target.items = target.items.filter((item) => item.chat_msg_id !== chatMsgId);
-  insertSystemItems(target.items, nextItems);
+function shouldHandleHistoryMessage(message: HistoryMessage) {
+  if (
+    message.msg_type === "chat.tools" &&
+    message.tool_name === "ui_update_tool"
+  ) {
+    return false;
+  }
+
+  return isSystemMessage(message) || message.msg_type === "error";
 }
 
-function mergeSystemItems(
+function mergeHistorySystemMessage(
   target: Extract<EvalChatMessage, { type: "system" }>,
   message: HistoryMessage,
   index: number,
 ) {
   const chatMsgId = message.chat_msg_id || 0;
   const msgTime = message.chat_msg_time || 0;
+  const newItems = historyItemsFromMessage(message, index);
 
   if (msgTime > 0 && msgTime > (target.chat_msg_time || 0)) {
     target.chat_msg_time = msgTime;
   }
 
-  if (target.chat_msg_id > chatMsgId) {
+  if (target.chat_msg_id > chatMsgId && chatMsgId > 0) {
     target.chat_msg_id = chatMsgId;
-  } else if (target.chat_msg_id === 0) {
+    if (chatMsgId > 0) {
+      target.items = target.items.filter((item) => item.chat_msg_id !== chatMsgId);
+    }
+    target.items = [...newItems, ...target.items];
+    return;
+  }
+
+  if (target.chat_msg_id === 0 && chatMsgId > 0) {
     target.chat_msg_id = chatMsgId;
   }
 
-  appendSystemItems(target, historyItemsFromMessage(message, index), chatMsgId);
+  if (chatMsgId > 0) {
+    target.items = target.items.filter((item) => item.chat_msg_id !== chatMsgId);
+  }
+
+  insertSystemItems(target.items, newItems);
 }
 
-function findActiveSystemMessage(
+function unshiftHistorySystemMessage(
   chatMessageList: EvalChatMessage[],
-): Extract<EvalChatMessage, { type: "system" }> | undefined {
-  return chatMessageList.find(
-    (message): message is Extract<EvalChatMessage, { type: "system" }> =>
-      message.type === "system",
-  );
+  message: HistoryMessage,
+  index: number,
+) {
+  const chatMsgId = message.chat_msg_id ?? index;
+  const items = historyItemsFromMessage(message, index);
+
+  if (items.length === 0) {
+    return;
+  }
+
+  chatMessageList.unshift({
+    type: "system",
+    id: genId("system", chatMsgId, index),
+    chat_msg_id: chatMsgId,
+    chat_msg_time: message.chat_msg_time,
+    items,
+  });
+}
+
+function unshiftHistoryUserMessage(
+  chatMessageList: EvalChatMessage[],
+  message: HistoryMessage,
+  index: number,
+) {
+  if (!message.user_msg?.msg?.trim()) {
+    return;
+  }
+
+  const chatMsgId = message.chat_msg_id ?? index;
+  chatMessageList.unshift({
+    type: "user",
+    id: genId("user", chatMsgId, index),
+    chat_msg_id: chatMsgId,
+    chat_msg_time: message.chat_msg_time,
+    content: message.user_msg.msg.trim(),
+  });
 }
 
 export function parseHistoryToChatMessages(
@@ -378,46 +423,19 @@ export function parseHistoryToChatMessages(
   const chatMessageList: EvalChatMessage[] = [];
 
   [...messages].reverse().forEach((message, index) => {
-    if (isSystemMessage(message)) {
-      const chatMsgId = message.chat_msg_id || index;
-      const activeSystem = findActiveSystemMessage(chatMessageList);
-
-      if (activeSystem) {
-        mergeSystemItems(activeSystem, message, index);
-      } else {
-        const items = historyItemsFromMessage(message, index);
-        chatMessageList.unshift({
-          type: "system",
-          id: genId("system", chatMsgId, index),
-          chat_msg_id: chatMsgId,
-          chat_msg_time: message.chat_msg_time,
-          items,
-        });
-      }
-
-      if (message.user_msg?.msg?.trim()) {
-        chatMessageList.unshift({
-          type: "user",
-          id: genId("user", chatMsgId, index),
-          chat_msg_id: chatMsgId,
-          chat_msg_time: message.chat_msg_time,
-          content: message.user_msg.msg.trim(),
-        });
-      }
+    if (!shouldHandleHistoryMessage(message)) {
       return;
     }
 
-    if (message.msg_type === "error") {
-      const chatMsgId = message.chat_msg_id || index;
-      const items = historyItemsFromMessage(message, index);
-      chatMessageList.unshift({
-        type: "system",
-        id: genId("system-error", chatMsgId, index),
-        chat_msg_id: chatMsgId,
-        chat_msg_time: message.chat_msg_time,
-        items,
-      });
+    const firstMsg = chatMessageList[0];
+
+    if (firstMsg?.type === "system") {
+      mergeHistorySystemMessage(firstMsg, message, index);
+    } else {
+      unshiftHistorySystemMessage(chatMessageList, message, index);
     }
+
+    unshiftHistoryUserMessage(chatMessageList, message, index);
   });
 
   return chatMessageList.filter(

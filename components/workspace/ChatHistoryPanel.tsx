@@ -7,6 +7,7 @@ import type { ProjectFormat } from "@/api/types";
 import type { EvalChatMessage } from "@/lib/chatHistory";
 
 type ChatHistoryPanelProps = {
+  projectId: number;
   messages: EvalChatMessage[];
   loading: boolean;
   error: string | null;
@@ -14,6 +15,7 @@ type ChatHistoryPanelProps = {
 };
 
 export default function ChatHistoryPanel({
+  projectId,
   messages,
   loading,
   error,
@@ -52,8 +54,8 @@ export default function ChatHistoryPanel({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto flex max-w-[860px] flex-col gap-4 px-6 py-6">
+    <div className="flex-1 overflow-y-auto" data-project-id={projectId}>
+      <div className="mx-auto flex max-w-[900px] flex-col gap-3 px-6 py-6 pe-10">
         {messages.map((message) =>
           message.type === "user" ? (
             <ChatUserCard key={message.id} message={message} />
