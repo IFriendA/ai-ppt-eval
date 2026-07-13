@@ -1,59 +1,23 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ChatDisplayMessage } from "@/lib/chatHistory";
-import { formatTime } from "@/lib/chatHistory";
+import ChatSystemCard from "@/components/chat/ChatSystemCard";
+import ChatUserCard from "@/components/chat/ChatUserCard";
+import type { ProjectFormat } from "@/api/types";
+import type { EvalChatMessage } from "@/lib/chatHistory";
 
 type ChatHistoryPanelProps = {
-  messages: ChatDisplayMessage[];
+  messages: EvalChatMessage[];
   loading: boolean;
   error: string | null;
+  projectFormat?: ProjectFormat | null;
 };
-
-function MessageBubble({ message }: { message: ChatDisplayMessage }) {
-  if (message.role === "user") {
-    return (
-      <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-2xl bg-zinc-900 px-4 py-3 text-sm leading-6 text-white">
-          <div className="whitespace-pre-wrap wrap-break-word">{message.content}</div>
-          {message.time ? (
-            <div className="mt-2 text-end text-xs text-zinc-300">
-              {formatTime(message.time)}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
-
-  if (message.role === "assistant") {
-    return (
-      <div className="flex justify-start">
-        <div className="max-w-[85%] rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm leading-6 text-zinc-800">
-          <div className="whitespace-pre-wrap wrap-break-word">{message.content}</div>
-          {message.time ? (
-            <div className="mt-2 text-xs text-zinc-400">
-              {formatTime(message.time)}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex justify-center">
-      <div className="rounded-full bg-zinc-100 px-3 py-1 text-xs text-zinc-500">
-        {message.content}
-      </div>
-    </div>
-  );
-}
 
 export default function ChatHistoryPanel({
   messages,
   loading,
   error,
+  projectFormat = "main_agent",
 }: ChatHistoryPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -88,11 +52,19 @@ export default function ChatHistoryPanel({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4">
-        {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
+    <div className="flex-1 overflow-y-auto">
+      <div className="mx-auto flex max-w-[860px] flex-col gap-4 px-6 py-6">
+        {messages.map((message) =>
+          message.type === "user" ? (
+            <ChatUserCard key={message.id} message={message} />
+          ) : (
+            <ChatSystemCard
+              key={message.id}
+              message={message}
+              projectFormat={projectFormat}
+            />
+          ),
+        )}
         <div ref={bottomRef} />
       </div>
     </div>

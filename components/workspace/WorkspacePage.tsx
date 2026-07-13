@@ -1,23 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getHistoryMsg } from "@/api/agentApi";
 import { getProjectList } from "@/api/projectApi";
 import { getWorkspaceList } from "@/api/workspaceApi";
-import type { Project, ProjectFormat, Task, Workspace } from "@/api/types";
+import type { Project, ProjectFormat, Task, UserInfo, Workspace } from "@/api/types";
 import { getUserInfo } from "@/api/userApi";
 import ChatHistoryPanel from "@/components/workspace/ChatHistoryPanel";
 import TaskList from "@/components/workspace/TaskList";
+import WorkspaceUserBar from "@/components/workspace/WorkspaceUserBar";
+import DokieBackground from "@/components/brand/DokieBackground";
+import DokieLogo from "@/components/brand/DokieLogo";
 import { clearAuth, getStoredUser, setAuth } from "@/lib/auth";
 import {
-  parseHistoryMessages,
-  type ChatDisplayMessage,
+  parseHistoryToChatMessages,
+  type EvalChatMessage,
 } from "@/lib/chatHistory";
 import { getFormatLabel, getTaskDisplayName } from "@/lib/taskUtil";
+import {
+  buildWorkspaceUrl,
+  parseWorkspaceUrl,
+} from "@/lib/workspaceUrl";
 
 export default function WorkspacePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const restoredFromUrlRef = useRef(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -33,18 +42,41 @@ export default function WorkspacePage() {
   const [activeProjectFormat, setActiveProjectFormat] =
     useState<ProjectFormat | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [userLabel, setUserLabel] = useState("");
+  const [user, setUser] = useState<UserInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [historyMessages, setHistoryMessages] = useState<ChatDisplayMessage[]>(
-    [],
-  );
+  const [historyMessages, setHistoryMessages] = useState<EvalChatMessage[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+
+  const syncSelectionToUrl = useCallback(
+    (taskId: number, projectId: number) => {
+      router.replace(buildWorkspaceUrl({ taskId, projectId }), { scroll: false });
+    },
+    [router],
+  );
+
+  const applyMainAgentSelection = useCallback((task: Task) => {
+    setCurrentTask(task);
+    setActiveProjectId(task.main_agent_id);
+    setActiveProjectFormat("main_agent");
+    setSelectedProject(null);
+    syncSelectionToUrl(task.task_id, task.main_agent_id);
+  }, [syncSelectionToUrl]);
+
+  const applySubProjectSelection = useCallback((task: Task, project: Project) => {
+    setCurrentTask(task);
+    setActiveProjectId(project.project_id ?? null);
+    setActiveProjectFormat(project.project_format ?? null);
+    setSelectedProject(project);
+    if (project.project_id) {
+      syncSelectionToUrl(task.task_id, project.project_id);
+    }
+  }, [syncSelectionToUrl]);
 
   useEffect(() => {
     const storedUser = getStoredUser();
     if (storedUser) {
-      setUserLabel(storedUser.nickname || storedUser.email || "用户");
+      setUser(storedUser);
     }
 
     getUserInfo()
@@ -56,11 +88,7 @@ export default function WorkspacePage() {
         }
 
         setAuth(res.data.user_info);
-        setUserLabel(
-          res.data.user_info.nickname ||
-            res.data.user_info.email ||
-            "用户",
-        );
+        setUser(res.data.user_info);
       })
       .catch(() => {
         clearAuth();
@@ -97,11 +125,81 @@ export default function WorkspacePage() {
   }, [checkingAuth]);
 
   useEffect(() => {
-    if (
-      activeProjectFormat !== "main_agent" ||
-      !activeProjectId ||
-      selectedProject
-    ) {
+    if (loadingTasks || taskList.length === 0 || restoredFromUrlRef.current) {
+      return;
+    }
+
+    const urlState = parseWorkspaceUrl(searchParams);
+    if (!urlState) {
+      restoredFromUrlRef.current = true;
+      return;
+    }
+
+    restoredFromUrlRef.current = true;
+
+    const task = taskList.find((item) => item.task_id === urlState.taskId);
+    if (!task) {
+      return;
+    }
+
+    if (task.main_agent_id === urlState.projectId) {
+      setExpandedTaskIds((prev) =>
+        prev.includes(task.task_id) ? prev : [...prev, task.task_id],
+      );
+      applyMainAgentSelection(task);
+      return;
+    }
+
+    let cancelled = false;
+
+    const restoreSubProject = async () => {
+      setTaskProjectsLoadingByTaskId((prev) => ({ ...prev, [task.task_id]: true }));
+
+      try {
+        const res = await getProjectList(0, 100, "edit", "", task.task_id);
+        if (cancelled) return;
+
+        const projects = res.error === 0 ? (res.data.project_list ?? []) : [];
+        setTaskProjectsByTaskId((prev) => ({ ...prev, [task.task_id]: projects }));
+
+        const project = projects.find(
+          (item) => item.project_id === urlState.projectId,
+        );
+        if (!project) return;
+
+        setExpandedTaskIds((prev) =>
+          prev.includes(task.task_id) ? prev : [...prev, task.task_id],
+        );
+        applySubProjectSelection(task, project);
+      } catch {
+        if (!cancelled) {
+          setTaskProjectsByTaskId((prev) => ({ ...prev, [task.task_id]: [] }));
+        }
+      } finally {
+        if (!cancelled) {
+          setTaskProjectsLoadingByTaskId((prev) => ({
+            ...prev,
+            [task.task_id]: false,
+          }));
+        }
+      }
+    };
+
+    void restoreSubProject();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    applyMainAgentSelection,
+    applySubProjectSelection,
+    loadingTasks,
+    searchParams,
+    taskList,
+  ]);
+
+  useEffect(() => {
+    if (!activeProjectId) {
       setHistoryMessages([]);
       setHistoryError(null);
       setHistoryLoading(false);
@@ -128,7 +226,7 @@ export default function WorkspacePage() {
         }
 
         setHistoryMessages(
-          parseHistoryMessages(res.data?.history_msg ?? []),
+          parseHistoryToChatMessages(res.data?.history_msg ?? []),
         );
       })
       .catch(() => {
@@ -145,7 +243,7 @@ export default function WorkspacePage() {
     return () => {
       cancelled = true;
     };
-  }, [activeProjectId, activeProjectFormat, selectedProject]);
+  }, [activeProjectId]);
 
   const fetchTaskProjects = async (taskId: number) => {
     if (taskProjectsByTaskId[taskId] || taskProjectsLoadingByTaskId[taskId]) {
@@ -179,17 +277,11 @@ export default function WorkspacePage() {
   };
 
   const handleSelectMainAgent = (task: Task) => {
-    setCurrentTask(task);
-    setActiveProjectId(task.main_agent_id);
-    setActiveProjectFormat("main_agent");
-    setSelectedProject(null);
+    applyMainAgentSelection(task);
   };
 
   const handleSelectSubProject = (task: Task, project: Project) => {
-    setCurrentTask(task);
-    setActiveProjectId(project.project_id ?? null);
-    setActiveProjectFormat(project.project_format ?? null);
-    setSelectedProject(project);
+    applySubProjectSelection(task, project);
 
     if (!expandedTaskIds.includes(task.task_id)) {
       setExpandedTaskIds((prev) => [...prev, task.task_id]);
@@ -204,18 +296,20 @@ export default function WorkspacePage() {
 
   if (checkingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-100">
-        <div className="text-sm text-zinc-500">加载中...</div>
+      <div className="relative flex h-screen items-center justify-center">
+        <DokieBackground variant="workspace" />
+        <div className="relative text-sm text-mute">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-zinc-100">
-      <aside className="flex w-[320px] shrink-0 flex-col border-e border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-4 py-4">
-          <h1 className="text-base font-semibold text-zinc-900">AI PPT Eval</h1>
-          <p className="mt-1 truncate text-xs text-zinc-500">{userLabel}</p>
+    <div className="relative flex h-screen overflow-hidden bg-blue-3">
+      <DokieBackground variant="workspace" />
+
+      <aside className="relative z-10 flex w-[320px] shrink-0 flex-col border-e border-zinc-200/80 bg-white/95 backdrop-blur-sm">
+        <div className="border-b border-zinc-200/80 px-4 py-4">
+          <DokieLogo size="sm" subtitle="Eval" />
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -243,20 +337,12 @@ export default function WorkspacePage() {
           )}
         </div>
 
-        <div className="border-t border-zinc-200 p-3">
-          <button
-            type="button"
-            className="h-9 w-full cursor-pointer rounded-lg border border-zinc-200 text-sm text-zinc-600 transition hover:bg-zinc-50"
-            onClick={handleLogout}
-          >
-            退出登录
-          </button>
-        </div>
+        <WorkspaceUserBar user={user} onLogout={handleLogout} />
       </aside>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="border-b border-zinc-200 bg-white px-6 py-4">
-          <h2 className="text-lg font-semibold text-zinc-900">
+      <main className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="border-b border-zinc-200/80 bg-white/90 px-6 py-4 backdrop-blur-sm">
+          <h2 className="text-lg font-semibold text-default">
             {selectedProject
               ? selectedProject.project_name || "未命名项目"
               : currentTask
@@ -264,42 +350,32 @@ export default function WorkspacePage() {
                 : "任务详情"}
           </h2>
           {selectedProject ? (
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-mute">
               {getFormatLabel(selectedProject.project_format)}
             </p>
           ) : currentTask ? (
-            <p className="mt-1 text-sm text-zinc-500">主 Agent</p>
+            <p className="mt-1 text-sm text-blue">主 Agent</p>
           ) : (
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-mute">
               从左侧选择任务或子任务
             </p>
           )}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-zinc-50">
-          {selectedProject ? (
-            <div className="flex flex-1 items-center justify-center p-6">
-              <div className="max-w-md text-center text-sm text-zinc-500">
-                已选择子任务，消息内容将在下一步接入
-              </div>
-            </div>
-          ) : currentTask && activeProjectFormat === "main_agent" ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white/70">
+          {activeProjectId && currentTask ? (
             <ChatHistoryPanel
+              key={activeProjectId}
               messages={historyMessages}
               loading={historyLoading}
               error={historyError}
+              projectFormat={activeProjectFormat}
             />
-          ) : currentTask ? (
-            <div className="flex flex-1 items-center justify-center p-6">
-              <div className="max-w-md text-center text-sm text-zinc-500">
-                已选择主 Agent，可展开任务查看子任务
-              </div>
-            </div>
           ) : (
             <div className="flex flex-1 items-center justify-center p-6">
-              <div className="max-w-md text-center text-sm text-zinc-500">
+              <div className="max-w-md text-center text-sm text-mute">
                 {workspace
-                  ? `当前工作区：${workspace.workspace_name}`
+                  ? "从左侧选择任务或子任务"
                   : "暂无工作区"}
               </div>
             </div>

@@ -53,7 +53,7 @@ export default function TaskList({
 }: TaskListProps) {
   if (taskList.length === 0) {
     return (
-      <div className="px-4 py-8 text-center text-sm text-zinc-500">
+      <div className="px-4 py-8 text-center text-sm text-mute">
         暂无任务
       </div>
     );
@@ -87,13 +87,13 @@ export default function TaskList({
             {isExpanded ? (
               <div className="flex flex-col gap-0.5">
                 {isLoading ? (
-                  <div className="px-6 py-2 text-xs text-zinc-400">
+                  <div className="px-6 py-2 text-xs text-mute">
                     加载子任务...
                   </div>
                 ) : null}
 
                 {!isLoading && subTasks.length === 0 ? (
-                  <div className="px-6 py-2 text-xs text-zinc-400">
+                  <div className="px-6 py-2 text-xs text-mute">
                     暂无子任务
                   </div>
                 ) : null}

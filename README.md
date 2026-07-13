@@ -1,4 +1,4 @@
-# AI PPT Eval
+# Dokie Eval
 
 AI PPT 评测平台，基于 Next.js 16 + React 19 + TypeScript。通过同源 `/api/*` 代理转发到后端服务，首页提供邮箱验证码登录。
 

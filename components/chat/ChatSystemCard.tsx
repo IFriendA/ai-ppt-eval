@@ -1,0 +1,114 @@
+"use client";
+
+import Image from "next/image";
+import ChatMarkdown from "@/components/chat/ChatMarkdown";
+import ToolCallCard from "@/components/chat/ToolCallCard";
+import KeyInfosCard from "@/components/chat/cards/KeyInfosCard";
+import NewVersionCard from "@/components/chat/cards/NewVersionCard";
+import NpsCard from "@/components/chat/cards/NpsCard";
+import OutlineCard from "@/components/chat/cards/OutlineCard";
+import OutlineConfirmCard from "@/components/chat/cards/OutlineConfirmCard";
+import OutlineNewCard from "@/components/chat/cards/OutlineNewCard";
+import { formatTime } from "@/lib/chatHistory";
+import type { ProjectFormat } from "@/api/types";
+import { getAgentLabel } from "@/lib/taskUtil";
+import type { EvalChatMessage } from "@/lib/chatHistory";
+
+type SystemMessage = Extract<EvalChatMessage, { type: "system" }>;
+
+export default function ChatSystemCard({
+  message,
+  projectFormat = "main_agent",
+}: {
+  message: SystemMessage;
+  projectFormat?: ProjectFormat | null;
+}) {
+  const agentLabel = getAgentLabel(projectFormat);
+
+  return (
+    <div className="group/card relative w-full self-start px-6 hover:z-10">
+      <div className="flex items-center gap-2 pb-1 pt-3">
+        <Image
+          src="/logo.svg"
+          alt="Dokie"
+          width={24}
+          height={24}
+          unoptimized
+          className="size-6 shrink-0"
+        />
+        <span className="font-['Figtree'] text-sm font-normal leading-5 text-mute">
+          {agentLabel}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-3 py-2 text-start">
+        {message.items.map((item) => {
+          if (item.kind === "thought") {
+            return (
+              <div
+                key={item.id}
+                className="rounded-lg border border-blue-4 bg-blue-3 px-3 py-2 text-xs leading-5 text-blue-11"
+              >
+                <div className="mb-1 font-medium text-blue">思考</div>
+                <ChatMarkdown content={item.content} className="text-xs" />
+              </div>
+            );
+          }
+
+          if (item.kind === "text") {
+            return <ChatMarkdown key={item.id} content={item.content} />;
+          }
+
+          if (item.kind === "tool") {
+            return <ToolCallCard key={item.id} tool={item.tool} />;
+          }
+
+          if (item.kind === "key_infos") {
+            return <KeyInfosCard key={item.id} data={item.data} />;
+          }
+
+          if (item.kind === "outline") {
+            return <OutlineCard key={item.id} data={item.data} />;
+          }
+
+          if (item.kind === "outline_new") {
+            return <OutlineNewCard key={item.id} data={item.data} />;
+          }
+
+          if (item.kind === "outline_confirm") {
+            return <OutlineConfirmCard key={item.id} />;
+          }
+
+          if (item.kind === "new_ver") {
+            return <NewVersionCard key={item.id} data={item.data} />;
+          }
+
+          if (item.kind === "nps") {
+            return <NpsCard key={item.id} />;
+          }
+
+          if (item.kind === "error") {
+            return (
+              <div
+                key={item.id}
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
+                {item.content}
+              </div>
+            );
+          }
+
+          return null;
+        })}
+      </div>
+
+      {message.chat_msg_time ? (
+        <div className="flex h-7 items-center opacity-0 transition-opacity group-hover/card:opacity-100">
+          <span className="text-xs font-medium text-mute">
+            {formatTime(message.chat_msg_time)}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+}

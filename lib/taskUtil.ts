@@ -9,6 +9,20 @@ const FORMAT_LABELS: Record<ProjectFormat, string> = {
   image: "图片",
 };
 
+const AGENT_LABELS: Record<ProjectFormat, string> = {
+  main_agent: "Dokie Manager",
+  slide: "Dokie Designer",
+  social: "Dokie Creator",
+  scroll: "Dokie Creator",
+  draft: "Dokie Editor",
+  image: "Dokie Designer",
+};
+
+export function getAgentLabel(format?: ProjectFormat | null) {
+  if (!format) return "Dokie";
+  return AGENT_LABELS[format] ?? "Dokie";
+}
+
 export function getFormatLabel(format?: ProjectFormat) {
   if (!format) return "项目";
   return FORMAT_LABELS[format] ?? format;

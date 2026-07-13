@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getUserInfo, loginEmail, sendEmailCode } from "@/api/userApi";
+import DokieBackground from "@/components/brand/DokieBackground";
+import DokieLogo from "@/components/brand/DokieLogo";
 import { setAuth } from "@/lib/auth";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -115,21 +117,28 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-        <div className="text-sm text-zinc-500">加载中...</div>
+      <div className="relative flex min-h-screen items-center justify-center px-4">
+        <DokieBackground />
+        <div className="relative text-sm text-mute">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm">
-        <h1 className="text-center text-2xl font-semibold text-zinc-900">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
+      <DokieBackground />
+
+      <div className="relative w-full max-w-[420px] rounded-4xl bg-white px-8 py-10 shadow-lg">
+        <div className="flex justify-center pb-6">
+          <DokieLogo size="lg" subtitle="Eval" />
+        </div>
+
+        <h1 className="text-center text-2xl font-bold text-default">
           {step === "email" ? "欢迎回来" : "查收验证码"}
         </h1>
-        <p className="mt-2 text-center text-sm text-zinc-500">
+        <p className="mt-2 text-center text-sm text-mute">
           {step === "email"
-            ? "使用邮箱验证码登录"
+            ? "使用邮箱验证码登录 Dokie Eval"
             : `验证码已发送至 ${email}`}
         </p>
 
@@ -141,12 +150,12 @@ export default function LoginPage() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="name@example.com"
-              className="h-11 w-full rounded-xl border border-zinc-200 px-4 text-sm text-zinc-900 outline-none transition focus:border-zinc-400"
+              className="h-11 w-full rounded-xl border border-zinc-200 px-4 text-sm text-default outline-none transition focus:border-blue"
             />
             <button
               type="button"
               disabled={isSending}
-              className="h-11 w-full cursor-pointer rounded-xl bg-zinc-900 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full cursor-pointer rounded-xl bg-blue text-sm font-medium text-white transition hover:bg-blue-11 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => void sendCode(email)}
             >
               {isSending ? "发送中..." : "继续"}
@@ -170,15 +179,15 @@ export default function LoginPage() {
                 }
               }}
               placeholder="6 位验证码"
-              className="h-11 w-full rounded-xl border border-zinc-200 px-4 text-center text-lg tracking-[0.3em] text-zinc-900 outline-none transition focus:border-zinc-400"
+              className="h-11 w-full rounded-xl border border-zinc-200 px-4 text-center text-lg tracking-[0.3em] text-default outline-none transition focus:border-blue"
             />
 
-            <div className="text-center text-sm text-zinc-500">
+            <div className="text-center text-sm text-mute">
               没收到验证码？
               <button
                 type="button"
                 disabled={countdown > 0 || isSending}
-                className="ms-1 cursor-pointer font-medium text-zinc-900 underline underline-offset-4 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
+                className="ms-1 cursor-pointer font-medium text-blue underline underline-offset-4 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50"
                 onClick={() => void sendCode(email)}
               >
                 {countdown > 0 ? `${countdown}s 后重发` : "重新发送"}
@@ -188,7 +197,7 @@ export default function LoginPage() {
             <button
               type="button"
               disabled={code.length !== 6 || isSubmitting}
-              className="h-11 w-full cursor-pointer rounded-xl bg-zinc-900 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-11 w-full cursor-pointer rounded-xl bg-blue text-sm font-medium text-white transition hover:bg-blue-11 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => void submitCode(code)}
             >
               {isSubmitting ? "登录中..." : "登录"}
@@ -196,7 +205,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="h-11 w-full cursor-pointer rounded-xl border border-zinc-200 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
+              className="h-11 w-full cursor-pointer rounded-xl border border-zinc-200 text-sm font-medium text-default transition hover:bg-light-gray"
               onClick={() => {
                 setStep("email");
                 setCode("");
@@ -213,7 +222,7 @@ export default function LoginPage() {
           <p className="mt-4 text-center text-sm text-red-600">{error}</p>
         ) : null}
         {message ? (
-          <p className="mt-4 text-center text-sm text-emerald-600">{message}</p>
+          <p className="mt-4 text-center text-sm text-blue">{message}</p>
         ) : null}
       </div>
     </div>

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI PPT Eval",
-  description: "AI PPT evaluation platform",
+  title: "Dokie Eval",
+  description: "Dokie AI PPT evaluation platform",
 };
 
 export default function RootLayout({

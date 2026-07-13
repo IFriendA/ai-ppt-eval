@@ -27,8 +27,8 @@ export default function TaskItem({
         "flex h-9 w-full cursor-pointer items-center gap-2 rounded-lg px-2 text-start transition",
         indent ? "ps-6" : "",
         active
-          ? "bg-zinc-900 text-white"
-          : "text-zinc-700 hover:bg-zinc-100",
+          ? "bg-blue-soft font-medium text-blue"
+          : "text-default hover:bg-light-gray",
       ].join(" ")}
     >
       <span className="flex size-4 shrink-0 items-center justify-center">

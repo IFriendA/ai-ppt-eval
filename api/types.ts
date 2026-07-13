@@ -75,10 +75,20 @@ export interface HistoryMessage {
   chat_msg_time?: number;
   msg_type: string;
   text_streaming_msg?: string;
+  text_streaming_thought?: string;
   user_msg?: MessageUserMsg;
   tool_name?: string;
   tool_desc?: string;
+  tool_finish?: boolean;
+  tool_ext?: Record<string, unknown>;
+  tool_input?: unknown;
+  tool_output?: unknown;
+  tool_definition?: unknown;
+  input?: unknown;
+  output?: unknown;
   msg?: string;
+  error?: number;
+  [key: string]: unknown;
 }
 
 export interface HistoryMsgRes {
