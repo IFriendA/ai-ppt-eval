@@ -11,6 +11,7 @@ import ChatHistoryPanel from "@/components/workspace/ChatHistoryPanel";
 import TaskList from "@/components/workspace/TaskList";
 import WorkspaceUserBar from "@/components/workspace/WorkspaceUserBar";
 import { AnnotationProvider } from "@/components/annotation/AnnotationProvider";
+import AppNav from "@/components/layout/AppNav";
 import DokieBackground from "@/components/brand/DokieBackground";
 import DokieLogo from "@/components/brand/DokieLogo";
 import { clearAuth, getStoredUser, setAuth } from "@/lib/auth";
@@ -311,6 +312,9 @@ export default function WorkspacePage() {
       <aside className="relative z-10 flex w-[320px] shrink-0 flex-col border-e border-zinc-200/80 bg-white/95 backdrop-blur-sm">
         <div className="border-b border-zinc-200/80 px-4 py-4">
           <DokieLogo size="sm" subtitle="Eval" />
+          <div className="mt-4">
+            <AppNav />
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
