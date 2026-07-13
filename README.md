@@ -27,9 +27,11 @@ cp .env.example .env.local
 
 ```bash
 BACKEND_BASE_API=http://your-api-server.com:8188
+PINOVA_API_KEY=your-pinova-api-key
 ```
 
-`BACKEND_BASE_API` 仅服务端使用，前端请求统一走 `/api/*` 代理，例如 `/api/user/login_email` 会转发到 `{BACKEND_BASE_API}/user/login_email`。
+- `BACKEND_BASE_API` 仅服务端使用，前端请求统一走 `/api/*` 代理，例如 `/api/user/login_email` 会转发到 `{BACKEND_BASE_API}/user/login_email`。
+- `PINOVA_API_KEY` 仅服务端使用，供 `/api/pinova/chat` 调用 Pinova AI 对话接口；未配置时 AI 对话页无法发送消息。
 
 ### 3. 启动开发服务
 
