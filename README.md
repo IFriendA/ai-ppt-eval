@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI PPT Eval
 
-## Getting Started
+AI PPT 评测平台，基于 Next.js 16 + React 19 + TypeScript。通过同源 `/api/*` 代理转发到后端服务，首页提供邮箱验证码登录。
 
-First, run the development server:
+## 环境要求
+
+- Node.js 20+
+- npm 10+
+
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install
+```
+
+### 2. 配置环境变量
+
+复制示例配置并填写后端地址：
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local` 示例：
+
+```bash
+BACKEND_BASE_API=http://your-api-server.com:8188
+```
+
+`BACKEND_BASE_API` 仅服务端使用，前端请求统一走 `/api/*` 代理，例如 `/api/user/login_email` 会转发到 `{BACKEND_BASE_API}/user/login_email`。
+
+### 3. 启动开发服务
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+浏览器访问 [http://localhost:3000](http://localhost:3000)。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 常用命令
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` | 启动开发服务器 |
+| `npm run build` | 构建生产版本 |
+| `npm run start` | 启动生产服务器（需先 `build`） |
+| `npm run lint` | 运行 ESLint 检查 |
 
-## Learn More
+## 项目结构
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  page.tsx              # 首页（邮箱验证码登录）
+  api/[...path]/route.ts # 后端 API 代理
+api/
+  http.ts               # 请求封装
+  userApi.ts            # 用户相关接口
+components/
+  LoginPage.tsx         # 登录页组件
+lib/
+  auth.ts               # 本地 token 存储
+  proxyBackend.ts       # 代理转发逻辑
+```
